@@ -1,0 +1,26 @@
+services:
+  keystore-generator:
+    image: eclipse-temurin:11-jre-alpine
+    container_name: keystore-generator
+    volumes:
+      - ./:/output
+    entrypoint: >
+      sh -c "
+        keytool -genkey -alias dummy -keyalg RSA -keysize 2048
+          -keystore /output/dummy.jks
+          -storepass dummy123 -keypass dummy123
+          -dname 'CN=dummy' &&
+        chmod 644 /output/dummy.jks &&
+        echo '✅ Keystore created successfully!' &&
+        echo '' &&
+        echo '📋 Connection Details for DBeaver:' &&
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
+        echo '  keyStoreAuthentication : JavaKeyStorePassword' &&
+        echo '  keyStoreLocation        : '$(pwd)/dummy.jks &&
+        echo '  keyStoreSecret          : dummy123' &&
+        echo '  TrustServerCertificate  : true' &&
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
+        echo '' &&
+        echo '🔐 Keystore password: dummy123' &&
+        echo '📂 Location: '$(pwd)/dummy.jks
+      "

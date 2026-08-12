@@ -1,0 +1,63 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: adventureworks-mssql
+    hostname: adventureworks-mssql
+    user: root                          # <-- ADD THIS
+    env_file:
+      - .env
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+      MSSQL_BACKUP_DIR: /var/opt/mssql/backups
+      MSSQL_DATA_DIR: /var/opt/mssql/data
+      MSSQL_LOG_DIR: /var/opt/mssql/log
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql/data
+      - mssql_log:/var/opt/mssql/log
+      - mssql_backups:/var/opt/mssql/backups
+      - ./backups:/backups:ro
+      - ./init/entrypoint.sh:/usr/config/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/usr/config/entrypoint.sh"]
+    healthcheck:
+      test:
+        - "CMD"
+        - "/opt/mssql-tools18/bin/sqlcmd"
+        - "-S"
+        - "localhost"
+        - "-U"
+        - "sa"
+        - "-P"
+        - "${SA_PASSWORD}"
+        - "-C"        # <-- ADD THIS
+        - "-Q"
+        - "SELECT 1"
+        - "-b"
+        - "-o"
+        - "/dev/null"
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - mssql_net
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+volumes:
+  mssql_data:
+    driver: local
+  mssql_log:
+    driver: local
+  mssql_backups:
+    driver: local
+
+networks:
+  mssql_net:
+    driver: bridge
